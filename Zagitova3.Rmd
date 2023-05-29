@@ -1,0 +1,347 @@
+library(MASS)
+library(klaR)
+library(ipred)
+library(stats)
+library(biotools)
+library(methods)
+library(nortest)
+library(moments)
+library(robustbase)
+library(psych)
+library(plyr)
+library(robCompositions)
+library(mvoutlier)
+library(MVN)
+library(andrews)
+library(Daim)
+library(ggplot2)
+mypredict <- function(object, newdata)
+predict(object, newdata = newdata)$class
+mylda <- function(formula, train, test){
+model <- lda(formula, train)
+predict(model, test)$posterior[,"pos"]
+}
+myqda <- function(formula, train, test){
+model <- qda(formula, train)
+48
+predict(model, test)$posterior[,"pos"]
+}
+estimate_err <- function(formula, y, df, q=F, B=50){
+a<-cv(y, formula, data = df, model=lda,
+k=length(y),predict=mypredict)$error
+d<-Daim(formula, data = df, model=mylda,
+control=Daim.control(method="boot", number=B))
+if(q==T){
+b<-cv(y, formula, data = df, model=qda,
+k=length(y),predict=mypredict)$error
+e<-Daim(formula, data = df, model=myqda,
+control=Daim.control(method="boot", number=B))
+res<-c(d$errapp,a,d$errloob,d$err632,d$err632p,
+e$errapp,b,e$errloob,e$err632,e$err632p)
+names(res)<-c("LDA_apparent","LDA_L-O-O",
+"LDA_L-O-O-B","LDA_B632","LDA_B632+",
+"QDA_apparent","QDA_L-O-O","QDA_L-O-O-B",
+"QDA_B632","QDA_B632+")
+return(res)
+} else{
+res<-c(d$errapp,a,d$errloob,d$err632,d$err632p)
+names(res)<-c("LDA_apparent","LDA_L-O-O",
+"LDA_L-O-O-B","LDA_B632","LDA_B632+")
+return(res)
+}
+}
+df <- read.csv("РћР±РЅРѕРІР»РµРЅРЅР°СЏ Р±Р°Р·Р°.csv",
+header = FALSE, sep = ";")
+df$V12 <- as.factor(df$V12)
+firstgroup <- df[,c((1:4),10,11,12)]
+49
+firstgroup <- na.omit(firstgroup)
+firstgroup <- firstgroup[-18,]
+greedy.wilks(firstgroup[,-7],
+firstgroup$V12,niveau=0.1)
+firstgroup <- df[,c(3,12)]
+firstgroup <- na.omit(firstgroup)
+shapiro.test(subset
+(firstgroup[,-2],firstgroup$V12==1))
+shapiro.test(subset
+(firstgroup[,-2],firstgroup$V12==2))
+bartlett.test(firstgroup[,-2],firstgroup[,2])
+err1<-estimate_err(V12~., df = firstgroup, y=firstgroup$V12)
+err12<-estimate_err(V12~.,
+df = firstgroup, y=firstgroup$V12,q=T)
+secondgroup <- df[,c((22:38),12)]
+secondgroup <- na.omit(secondgroup)
+greedy.wilks(secondgroup[,-18],secondgroup$V12,niveau=0.1)
+secondgroup <- df[,c(25,30,31,32,37,12)]
+secondgroup <- na.omit(secondgroup)
+mardiaTest(subset
+(secondgroup[,-6], secondgroup$V12==1))
+mardiaTest(subset
+(secondgroup[,-6], secondgroup$V12==2))
+boxM(secondgroup[,-6],secondgroup$V12)
+err2<-estimate_err(V12~.,
+df = secondgroup, y=secondgroup$V12)
+err22<-estimate_err(V12~.,
+df = secondgroup, y=secondgroup$V12,q=T)
+thirdgroup <- df[,c(39,(43:54),12)]
+thirdgroup <- na.omit(thirdgroup)
+greedy.wilks(thirdgroup[,-14],thirdgroup$V12,niveau=0.1)
+50
+thirdgroup <- df[,c(43,44,45,49,50,12)]
+thirdgroup <- na.omit(thirdgroup)
+thirdgroup$V49<-as.factor(thirdgroup$V49)
+mardiaTest(subset
+(thirdgroup[,-6], thirdgroup$V12==1))
+mardiaTest(subset
+(thirdgroup[,-6], thirdgroup$V12==2))
+boxM(thirdgroup[,-6],thirdgroup$V12)
+err3<-estimate_err(V12~.,
+df = thirdgroup, y=thirdgroup$V12)
+err32<-estimate_err(V12~.,
+df = thirdgroup, y=thirdgroup$V12,q=T,B=10)
+fourthgroup <- df[,c(79,(88:90),92,93,12)]
+fourthgroup <- na.omit(fourthgroup)
+greedy.wilks(fourthgroup[,-7],fourthgroup$V12,niveau=0.1)
+fourthgroup <- df[,c(93,12)]
+fourthgroup <- na.omit(fourthgroup)
+shapiro.test(subset
+(fourthgroup[,-2],fourthgroup$V12==1))
+shapiro.test(subset
+(fourthgroup[,-2],fourthgroup$V12==2))
+bartlett.test(fourthgroup[,1],fourthgroup$V12)
+err4<-estimate_err(V12~V93,
+df = fourthgroup, y=fourthgroup$V12)
+err42<-estimate_err(V12~V93,
+df = fourthgroup, y=fourthgroup$V12,q=T)
+fifthgroup <- df[,c((103:108),113,12)]
+fifthgroup <- na.omit(fifthgroup)
+greedy.wilks(fifthgroup[,-8],fifthgroup$V12,niveau=0.2)
+fifthgroup <- df[,c(105,12)]
+fifthgroup <- na.omit(fifthgroup)
+51
+shapiro.test(subset(fifthgroup[,-2],fifthgroup$V12==1))
+shapiro.test(subset(fifthgroup[,-2],fifthgroup$V12==2))
+bartlett.test(fifthgroup[,1],fifthgroup$V12)
+err5<-estimate_err(V12~V105,
+df = fifthgroup, y=fifthgroup$V12)
+err52<-estimate_err(V12~V105,
+df = fifthgroup, y=fifthgroup$V12,q=T)
+sixthgroup <-
+df[,c(120,(123:128),130,(132:135),137,139,140,12)]
+sixthgroup <- na.omit(sixthgroup)
+greedy.wilks(sixthgroup[,-16],sixthgroup$V12,niveau=0.1)
+sixthgroup <- df[,c(124,127,12)]
+sixthgroup <- na.omit(sixthgroup)
+mardiaTest(subset
+(sixthgroup[,-3], sixthgroup$V12==1))
+mardiaTest(subset
+(sixthgroup[,-3], sixthgroup$V12==2))
+boxM(sixthgroup[,-3],sixthgroup$V12)
+err61<-estimate_err(V12~V124+V127,
+df = sixthgroup, y=sixthgroup$V12)
+err62<-estimate_err(V12~V124+V127,
+df = sixthgroup, y=sixthgroup$V12, q=T)
+seventhgroup <- df[,c(141,142,(145:163),(165:168),12)]
+seventhgroup <- na.omit(seventhgroup)
+greedy.wilks(seventhgroup[,-26],seventhgroup$V12,niveau=0.1)
+seventhgroup <- df[,c(146,148,156,157,161,12)]
+seventhgroup <- na.omit(seventhgroup)
+mardiaTest(subset(seventhgroup[,-6], seventhgroup$V12==1))
+mardiaTest(subset(seventhgroup[,-6], seventhgroup$V12==2))
+boxM(seventhgroup[,-6],seventhgroup$V12)
+err7<-estimate_err(V12~.,
+52
+df = seventhgroup, y=seventhgroup$V12)
+err72<-estimate_err(V12~.,
+df = seventhgroup, y=seventhgroup$V12,q=T)
+eighthgroup <- df[,c((170:173),(175:184),(186:190),194,12)]
+eighthgroup <- na.omit(eighthgroup)
+greedy.wilks(eighthgroup[,-21],eighthgroup$V12,niveau=0.11)
+eighthgroup <- df[,c(175,12)]
+eighthgroup <- na.omit(eighthgroup)
+shapiro.test(subset
+(eighthgroup[,-2],eighthgroup$V12==1))
+shapiro.test(subset
+(eighthgroup[,-2],eighthgroup$V12==2))
+bartlett.test(eighthgroup[,1],eighthgroup$V12)
+err8<-estimate_err(V12~.,
+df = eighthgroup, y=eighthgroup$V12)
+err82<-estimate_err(V12~.,
+df = eighthgroup, y=eighthgroup$V12,q=T)
+ninthgroup <- df[,c((195:203),(205:213),12)]
+ninthgroup <- na.omit(ninthgroup)
+greedy.wilks(ninthgroup[,-19],ninthgroup$V12,niveau=0.1)
+ninthgroup <- df[,c(197,12)]
+ninthgroup <- na.omit(ninthgroup)
+shapiro.test(subset
+(ninthgroup[,-2],ninthgroup$V12==1))
+shapiro.test(subset
+(ninthgroup[,-2],ninthgroup$V12==2))
+bartlett.test(ninthgroup[,1],ninthgroup$V12)
+err9<-estimate_err(V12~V197,
+df = ninthgroup, y=ninthgroup$V12)
+err92<-estimate_err(V12~V197,
+df = ninthgroup, y=ninthgroup$V12,q=T)
+53
+tenthgroup <- df[,c(221,(223:229),232,233,12)]
+tenthgroup <- na.omit(tenthgroup)
+greedy.wilks(tenthgroup[,-11],tenthgroup$V12,niveau=0.2)
+tenthgroup <- df[,c(233,12)]
+tenthgroup <- na.omit(tenthgroup)
+shapiro.test(subset(tenthgroup[,-2],tenthgroup$V12==1))
+shapiro.test(subset(tenthgroup[,-2],tenthgroup$V12==2))
+bartlett.test(tenthgroup[,1],tenthgroup$V12)
+err10<-estimate_err(V12~V233,
+df = tenthgroup, y=tenthgroup$V12)
+err102<-estimate_err(V12~V233,
+df = tenthgroup, y=tenthgroup$V12,q=T)
+eleventhgroup <- df[,c(244,245,(248:255),261,262,12)]
+eleventhgroup <- na.omit(eleventhgroup)
+greedy.wilks(eleventhgroup[,-13],
+eleventhgroup$V12,niveau=0.1)
+eleventhgroup <- df[,c(261,262,12)]
+eleventhgroup <- na.omit(eleventhgroup)
+mardiaTest(subset
+(eleventhgroup[,-3], eleventhgroup$V12==1))
+mardiaTest(subset
+(eleventhgroup[,-3], eleventhgroup$V12==2))
+boxM(eleventhgroup[,-3],eleventhgroup$V12)
+err112<-estimate_err(V12~V261+V262,
+df = eleventhgroup, y=eleventhgroup$V12, q=T)
+err11<-estimate_err(V12~V261+V262,
+df = eleventhgroup, y=eleventhgroup$V12)
+onethreegroups <- df[,c(3,25,30,31,32,37,43,44,45,49,50,12)]
+onethreegroups <- na.omit(onethreegroups)
+onethreegroups <- onethreegroups[-13,]
+54
+greedy.wilks(onethreegroups[,-12],
+onethreegroups$V12,niveau=0.1)
+onethreegroups_2 <- df[,c(25,37,12)]
+onethreegroups_2 <- na.omit(onethreegroups_2)
+onethreegroups_2 <- onethreegroups[-18,]
+mardiaTest(subset
+(onethreegroups_2[,-3], onethreegroups_2$V12==1))
+mardiaTest
+(subset(onethreegroups_2[,-3], onethreegroups_2$V12==2))
+boxM(onethreegroups_2[,-3],onethreegroups_2$V12)
+estimate_err(V12~.,
+df = onethreegroups_2, y=onethreegroups_2$V12,q=T)
+foursixgroups <- df[,c(93,105,124,127,12)]
+foursixgroups <- na.omit(foursixgroups)
+greedy.wilks(foursixgroups[,-5],
+foursixgroups$V12,niveau=0.1)
+restgroups <-
+df[,c(146,148,156,157,161,175,197,233,261,262,12)]
+restgroups <- na.omit(restgroups)
+greedy.wilks(restgroups[,-11],restgroups$V12,niveau=0.2)
+restgroups <- df[,c(146,156,157,161,197,262,12)]
+restgroups <- na.omit(restgroups)
+mardiaTest(subset(restgroups[,-7], restgroups$V12==1))
+mardiaTest(subset(restgroups[,-7], restgroups$V12==2))
+boxM(restgroups[,-7],restgroups$V12)
+estimate_err(V12~., df = restgroups, y=restgroups$V12,q=T)
+unite <- df[,c(25,37,124,127,146,156,157,161,197,262,12)]
+unite <- na.omit(unite)
+greedy.wilks(unite[,-11],unite$V12,niveau=0.2)
+55
+unite_2 <- df[,c(124,127,146,156,157,197,12)]
+unite_2 <- na.omit(unite_2)
+mardiaTest(subset(unite_2[,-7], unite_2$V12==1))
+mardiaTest(subset(unite_2[,-7], unite_2$V12==2))
+boxM(unite_2[,-7], unite_2$V12)
+estimate_err(V12~., df = unite_2, y=unite_2$V12,q=T)
+#РЎРѕРІРµС‚ РІСЂР°С‡РµР№
+adv <- df[,c(124,128,130,133,221,225,12)]
+adv <- na.omit(adv)
+estimate_err(V12~., df = adv, y=adv$V12)
+experiment_01<-df[,c(3,25,37,12)]
+experiment_01 <- na.omit(experiment_01)
+experiment_01<- experiment_01[-18,]
+e01<-estimate_err(
+V12~., df = experiment_01, y=experiment_01$V12)
+experiment_02<-df[,c(1,3,25,37,12)]
+experiment_02 <- na.omit(experiment_02)
+experiment_02<- experiment_02[-18,]
+e02<-estimate_err(
+V12~., df = experiment_02, y=experiment_02$V12)
+experiment_1<-df[,c(1,3,25,37,124,127,146,156,157,197,12)]
+experiment_1 <- na.omit(experiment_1)
+experiment_1<- experiment_1[-16,]
+e1<-estimate_err(
+V12~., df = experiment_1, y=experiment_1$V12, B=25)
+greedy.wilks(experiment_1[-11],
+experiment_1$V12,niveau = 0.2)
+experiment_2<-df[,c(25,37,124,12)]
+experiment_2 <- na.omit(experiment_2)
+e2<-
+estimate_err(V12~., df = experiment_2, y=experiment_2$V12)
+56
+experiment_3<-df[,c(1,3,25,37,124,12)]
+experiment_3<- na.omit(experiment_3)
+experiment_3<- experiment_3[-16,]
+e3<-estimate_err(
+V12~., df = experiment_3, y=experiment_3$V12)
+experiment_4<-df[,c(1,3,25,37,197,12)]
+experiment_4<- na.omit(experiment_4)
+experiment_4<- experiment_4[-18,]
+e4<-estimate_err(
+V12~., df = experiment_4, y=experiment_4$V12)
+experiment_5<-df[,c(1,3,25,37,157,197,12)]
+experiment_5<- na.omit(experiment_5)
+experiment_5<- experiment_5[-16,]
+e5<-estimate_err(
+V12~., df = experiment_5, y=experiment_5$V12)
+experiment_6<-df[,c(1,3,25,37,157,12)]
+experiment_6<- na.omit(experiment_6)
+experiment_6<- experiment_6[-16,]
+e6<-estimate_err(V12~.,
+df = experiment_6, y=experiment_6$V12)
+РџРѕСЃС‚СЂРѕРµРЅРёРµ РіСЂР°С„РёРєРѕРІ
+age<-df[,c(1,12)]
+age<-na.omit(age)
+age$num<-1:51
+ggplot(age, aes(y=V1, x=num)) +
+geom_segment(aes(xend=num), yend=0, colour="grey50") +
+geom_point(size=3, aes(colour=V12))+
+xlab("Sufferer number")+
+ylab("Age")
+ggsave("Age.pdf", width=14, height=10)
+57
+results <- data.frame(err=
+c(err1,err2,err3,err4,err5,err6,err7,err8,err9,err10,err11))
+results$num <- 1:55
+results$type[results$num%%5==1]<-"Apparent"
+results$type[results$num%%5==2]<-"Leave-one-out"
+results$type[results$num%%5==3]<-"LOO Bootstrap"
+results$type[results$num%%5==4]<-"Bootstrap 632"
+results$type[results$num%%5==0]<-"Bootstrap 632+"
+results$number <- results$num%/%5+1
+results$number[results$num%%5==0] <- 1:11
+results<-results[,-2]
+ggplot(results,aes(x=number,y=err,col=type))+
+geom_line(size=1.5,alpha=0.7)+
+geom_point(size=5,alpha=0.75)+
+xlab("Group number")+
+ylab("Estimation of error rate")+
+labs(colour="Approach:")+
+scale_x_continuous(breaks=c(1:11))
+ggsave("graph_err.pdf", width=14, height=10)
+impres<-data.frame(err=c(e01,e02,e1,e2,e3,e4,e5,e6))
+impres$num <- 1:40
+impres$type[impres$num%%5==1]<-"Apparent"
+impres$type[impres$num%%5==2]<-"Leave-one-out"
+impres$type[impres$num%%5==3]<-"LOO Bootstrap"
+impres$type[impres$num%%5==4]<-"Bootstrap 632"
+impres$type[impres$num%%5==0]<-"Bootstrap 632+"
+impres$number <- impres$num%/%5+1
+impres$number[impres$num%%5==0] <- 1:8
+impres<-impres[,-2]
+ggplot(impres,aes(x=number,y=err,col=type))+
+geom_line(size=1.7,alpha=0.7)+
+geom_point(size=6,alpha=0.75)+
+58
+xlab("Group number")+
+ylab("Estimation of error rate")+
+labs(colour="Approach:")+
+scale_x_continuous(breaks=c(1:8))
+ggsave("experim_graph.pdf", width=14, height=10)
